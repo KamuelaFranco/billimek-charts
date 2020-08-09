@@ -54,6 +54,7 @@ ingress:
   annotations: {}
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
+  labels: {}
   path: /
   hosts:
     - chart-example.local
@@ -61,6 +62,52 @@ ingress:
   #  - secretName: chart-example-tls
   #    hosts:
   #      - chart-example.local
+
+openvpn:
+  # Enables an openvpn sidecar that when configured properly will provide a
+  # Secure outbound VPN for use by NZBGet.
+  enabled: false
+
+  image:
+    repository: dperson/openvpn-client
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  # All variables specified here will be added to the openvpn sidecar container
+  # Ref https://hub.docker.com/r/dperson/openvpn-client for all config values
+  env: []
+  # DNS: "true"
+  # TZ: EST5EDT
+
+  # Provide a customized vpn.conf file to be used by openvpn.
+  vpnConf:  # |-
+    # Some Example Config
+    # remote greatvpnhost.com 8888
+    # auth-user-pass
+    # Cipher AES
+
+  # Credentials to connect to the VPN Service (used with -a)
+  auth:  # "user;password"
+
+  # If set to true, will deploy a network policy that blocks all outbound
+  # traffic except traffic specified as allowed
+  networkPolicy:
+    enabled: false
+
+    # The egress configuration for your network policy, All outbound traffic
+    # From the pod will be blocked unless specified here. Your cluster must
+    # have a CNI that supports network policies (Canal, Calico, etc...)
+    # https://kubernetes.io/docs/concepts/services-networking/network-policies/
+    # https://github.com/ahmetb/kubernetes-network-policy-recipes
+    egress:
+      # - to:
+      #   - ipBlock:
+      #       cidr: 0.0.0.0/0
+      #   ports:
+      #   - port: 53
+      #     protocol: UDP
+      #   - port: 53
+      #     protocol: TCP
 
 persistence:
   config:
@@ -103,7 +150,8 @@ persistence:
   extraMounts: []
   ## Include additional claims that can be mounted inside the
   ## pod. This is useful if you wish to use different paths with categories
-  ## Claim will me mounted as /{mountPath}
+  ## Claim will me mounted as /{mountPath} if specified. If no {mountPath} is given,
+  ## mountPath will default to {name}
   # - name: video
   #   claimName: video-claim
   #   mountPath: /mnt/path/in/pod
